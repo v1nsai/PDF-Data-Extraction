@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 """
+Created on Thu Aug  9 11:16:02 2018
+
+@author: Brandon Croarkin
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Tue Jul 31 13:39:18 2018
 
 @author: Brandon Croarkin
 """
 
+from wand.image import Image
 import pytesseract
 import PIL
 import os
@@ -13,6 +21,60 @@ import pandas as pd
 import numpy as np
 from pandas import ExcelWriter
 import easygui
+
+def PDFCount(folder_location):
+    PDFs = []
+    for file in os.listdir(folder_location):
+        if file.endswith(".pdf"):
+            PDFs.append(file)
+    return(len(PDFs))
+    
+def imageCount(image_folder_location):
+    PNGs = []
+    for image in os.listdir(image_folder_location):
+        if image.endswith(".png"):
+            PNGs.append(image)
+    return(len(PNGs))
+    
+
+def PDF2PNG(folder_location, output_directory, resolution = 800):
+    """
+    Picks up all PDF files in a folder and outputs them as a PNG image
+    with 800 resolution as default. This can be edited
+    @@param folder_location folder location for where PDFs are stored
+    @@param resolution specify density of image conversion
+    """
+    #set the working directory to the folder_location
+    os.chdir(folder_location)
+    
+    #make a subdirectory to put the image exports if the directory
+    #does not already exist
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)    
+        
+    #Find all PDF files in folder
+    PDFs = []
+    for file in os.listdir(folder_location):
+        if file.endswith(".pdf"):
+            PDFs.append(file)
+    
+    #loop through PDF files and convert them to PNG
+    for i in range(len(PDFs)):
+        with Image(filename=PDFs[i], resolution = resolution) as img:
+            #find the filename
+            filename = findFileName(PDFs[i])
+            
+            #loop through pages of PDF
+            for i, page in enumerate(img.sequence):
+                with Image(page) as im:
+                    im.alpha_channel = False
+                
+                    #save PNG export in subfolder
+                    im.save(filename= output_directory + 
+                            '/' + filename + 'page-%s.png' % i)
+            
+            #delete file so NiFi doesn't repeat process on it
+            os.remove(filename + ".pdf")
 
 def crop(image_path, coords, saved_location):
     """
@@ -237,8 +299,8 @@ def tesseract(cropped_images_folder_location):
 
     #clean dataframe
     for i in range(len(df_formatted)):
-        df_formatted['Zip'][i] = df_formatted['Zip'][i].replace('O','0').replace(" ", "")
-        df_formatted['DateOfBirth'][i] = df_formatted['DateOfBirth'][i].replace('O','0').replace(" ", "").replace("\\","")
+        df_formatted['Zip'][i] = df_formatted['Zip'][i].replace('O','0').replace(" ", "").replace("l","1")
+        df_formatted['DateOfBirth'][i] = df_formatted['DateOfBirth'][i].replace('O','0').replace(" ", "").replace("\\","").replace("l","1").replace("'","").replace("‘","")
         if 'Telephone' in df_formatted:
             if df_formatted['Telephone'][i] is None:
                 continue
@@ -279,28 +341,48 @@ def tesseract(cropped_images_folder_location):
             df_clean['Attestation'][i] = attestation_dict[df_formatted['Attestation'][i].find('K')]
         except KeyError:
             df_clean['Attestation'][i] = "Attestation not found"
-            
+        
+        #use Alien # to help fill in Attestation
+        if (df_clean['Attestation'][i] == 'Attestation not found'):
+            if (df_formatted['Alien # for Permanent Residence'][i] != 'No value found') & (df_formatted['Alien # for Permanent Residence'][i] is not None):
+                df_clean['Attestation'][i] = 'A lawful permanent resident (Alien #)'
+            elif (df_formatted['Alien # for Work Authorization'][i] != 'No value found') & (df_formatted['Alien # for Work Authorization'][i] is not None):
+                df_clean['Attestation'][i] = 'An alien authorized to work'
+            else:
+                continue
+        else:
+            continue
+    for i in range(len(df_formatted)):
         #set A# or Admission# value depending on Attestation
         if df_clean['Attestation'][i] == 'A citizen of the United States':
             AlienAdmissionNumber.append('NA')
         elif (df_clean['Attestation'][i] == 'A lawful permanent resident (Alien #)'):
             AlienAdmissionNumber.append(df_clean['Alien # for Permanent Residence'][i])            
-        elif (df_clean['Attestation'][i] == 'A lawful permanent resident (Alien #)'):
-            AlienAdmissionNumber.append(df_clean['Alien # for Work Authorization'][i])
+        elif (df_clean['Attestation'][i] == 'An alien authorized to work'):
+            AlienAdmissionNumber.append(df_clean['Alien # for Work Authorization'][i])  
         else:
             AlienAdmissionNumber.append('NA')
-                     
+
+    for i in range(len(df_formatted)):      
+              
         #set document title
-        if df_clean['List A - DocumentTitle'][i] != 'No value found':
+        if (df_clean['List A - DocumentTitle'][i] != 'No value found') and (df_clean['List A - DocumentTitle'][i] is not None):
             DocumentTitle.append(df_clean['List A - DocumentTitle'][i])
         else:
-            DocumentTitle.append(df_clean['List B - DocumentTitle'][i] + " and " + df_clean['List C - DocumentTitle'][i])
+            if (df_clean['List B - DocumentTitle'][i] is not None) & (df_clean['List C - DocumentTitle'][i] is not None):
+                DocumentTitle.append(df_clean['List B - DocumentTitle'][i] + " and " + df_clean['List C - DocumentTitle'][i])
+            else:
+                DocumentTitle.append("NA")
+        
         #set document number
-        if df_clean['List A - DocumentNumber'][i] != 'No value found':
+        if (df_clean['List A - DocumentNumber'][i] != 'No value found') and (df_clean['List A - DocumentNumber'][i] is not None):
             DocumentNumber.append(df_clean['List A - DocumentNumber'][i])
         else:
-            DocumentNumber.append(df_clean['List B - DocumentNumber'][i] + " and " + df_clean['List C - DocumentNumber'][i])
-    
+            if (df_clean['List B - DocumentNumber'][i] is not None) & (df_clean['List C - DocumentNumber'][i] is not None):
+                DocumentNumber.append(df_clean['List B - DocumentNumber'][i] + " and " + df_clean['List C - DocumentNumber'][i])
+            else:
+                DocumentNumber.append("NA")
+                
     #create new columns from the lists
     df_clean['A# or Admission#'] = AlienAdmissionNumber
     df_clean['DocumentTitle'] = DocumentTitle
@@ -312,6 +394,16 @@ def tesseract(cropped_images_folder_location):
                       'List B - DocumentNumber', 'List C - DocumentTitle', 'List C - DocumentNumber']
     
     df_clean.drop(cols_to_delete, axis = 1, inplace = True)  
+    
+    #order columns
+    cols = ['LastName', 'FirstName', 'DateOfBirth', 'SocialSecurity', 'Attestation', 
+            'A# or Admission#', 'StreetAddress', 'City', 'State', 'Zip', 'TranslatorName',
+            'DocumentTitle', 'DocumentNumber', 'DateOfHire']
+    
+    df_clean = df_clean[cols]
+    
+    #fill in None values with NA
+    df_clean.fillna(value = "NA", inplace = True)
            
     #output files
     writer = ExcelWriter('i9Export(FullData).xlsx')
@@ -754,14 +846,11 @@ def PNG2Data(image_folder_location):
     easygui.msgbox("Completed!", title="i9 Processing")
     
 if __name__ == '__main__':
-    ###TESTING
-    #function to find a key with more than 4 values
-    #for key, value in image_coords_020209.items():
-    #if len(value) > 4:
-    #    print(key)
+    folder_location = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\NiFiTesting'
+    output_directory = 'PythonPNGs'
     
-    #testing on all pages of 02-02-09, 05-07-87, 06-05-07, and 08-07-09
-    #current it is just dumping cropped images into a new folder
+    #convert PDFs to images
+    PDF2PNG(folder_location, output_directory, resolution = 600)
     
     #listing out what page the information we want is on for each form
     page_info = {'05/07/87': 0,
@@ -779,13 +868,13 @@ if __name__ == '__main__':
     ###Run PNG2Data on folder with cropped images when there are images in folder
     image_folder_location = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\NiFiTesting\\PythonPNGs'
     
-    imageCount = []
-    os.chdir(image_folder_location)
-    for image in os.listdir(image_folder_location):
-        if image.endswith(".png"):
-            imageCount.append(image)
+    #get count of PDF's in folder (should only run PDF2PNG when none in folder)
+    PDFcount = PDFCount(folder_location)
     
-    if len(imageCount) > 0:
+    #get count of images in image folder (should only run PDF2PNG when there are images)
+    imageCounts = imageCount(image_folder_location)
+    
+    if (imageCounts > 0) & (PDFcount == 0):
         PNG2Data(image_folder_location)
     else:
         print("No images to extract text from.")

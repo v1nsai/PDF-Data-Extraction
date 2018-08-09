@@ -25,16 +25,16 @@ def PDF2PNG(folder_location, output_directory, resolution = 800):
     #set the working directory to the folder_location
     os.chdir(folder_location)
     
+    #make a subdirectory to put the image exports if the directory
+    #does not already exist
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)    
+        
     #Find all PDF files in folder
     PDFs = []
     for file in os.listdir(folder_location):
         if file.endswith(".pdf"):
             PDFs.append(file)
-    
-    #make a subdirectory to put the image exports if the directory
-    #does not already exist
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
     
     #loop through PDF files and convert them to PNG
     for i in range(len(PDFs)):
@@ -50,9 +50,12 @@ def PDF2PNG(folder_location, output_directory, resolution = 800):
                     #save PNG export in subfolder
                     im.save(filename= output_directory + 
                             '/' + filename + 'page-%s.png' % i)
-
+            
+            #delete file so NiFi doesn't repeat process on it
+            os.remove(filename + ".pdf")
+                    
 
 if __name__ == '__main__':
-    folder_location = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\Testing'
+    folder_location = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\NiFiTesting'
     output_directory = 'PythonPNGs'
-    PDF2PNG(folder_location, output_directory, resolution = 800)
+    PDF2PNG(folder_location, output_directory, resolution = 600)
