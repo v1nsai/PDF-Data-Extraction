@@ -14,19 +14,25 @@ import sys
 import io
     
 def PDF2PNG(flowFile, resolution):
+    # Declare the empty list of PNGs
+    PNGs = []
 
     #convert pdf to an image
     with Image(file=flowFile, resolution=resolution) as img:
         
-        #loop through pages of PDF
+        #loop through pages of PDF and convert each into a separate PNG
         for i, page in enumerate(img.sequence):
             with Image(page) as im:
                 img.alpha_channel = False
                 img.format = 'png'
 
-                # I think the best approach would be to save PNGs into a Python array or list, then return that
-                # object to the main thread for processing in the next function.  Not sure how though.....
-                img.save(filename='test.png')
+                # create a list of PNGs to return to the main thread to be passed to the next function
+                # Haven't tested this, a File() object might be more appropriate but I think either will work
+                swapPNG = io.BytesIO()
+                img.save(swapPNG)
+                PNGs = PNGs.append(swapPNG)
+        return PNGs
+
 
         # Can write PNG to stdout like this, but probably not what we want to do
         # img.save(flowFile)
@@ -44,5 +50,4 @@ if __name__ == '__main__':
     #file = 'i-9_02-02-09(Filled)(OCR).pdf'
     
     #convert PDFs to images
-    PDF2PNG(flowFile, resolution=200)
-
+    PNGs = PDF2PNG(flowFile, resolution=200)
