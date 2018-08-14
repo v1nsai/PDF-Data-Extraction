@@ -23,9 +23,12 @@ def PDF2PNG(flowFile, resolution):
             with Image(page) as im:
                 img.alpha_channel = False
                 img.format = 'png'
-                #save PNG export in subfolder
+
+                # I think the best approach would be to save PNGs into a Python array or list, then return that
+                # object to the main thread for processing in the next function.  Not sure how though.....
                 img.save(filename='test.png')
 
+        # Can write PNG to stdout like this, but probably not what we want to do
         # img.save(flowFile)
         #
         # sys.stdout.buffer.write(flowFile.getvalue())
