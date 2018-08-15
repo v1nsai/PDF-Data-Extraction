@@ -49,3 +49,4 @@ if __name__ == '__main__':
     PNGs = PDF2PNG(flowFile, resolution=200)
 
     for png in PNGs:
+        print(png)
