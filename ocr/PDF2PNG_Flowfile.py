@@ -1,12 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Aug  9 11:16:02 2018
-
-@author: Brandon Croarkin
-"""
-
-# -*- coding: utf-8 -*-
-
 from wand.image import Image
 import os
 import re
