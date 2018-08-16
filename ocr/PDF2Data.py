@@ -20,7 +20,7 @@ import re
 import pandas as pd
 import numpy as np
 from pandas import ExcelWriter
-import easygui
+from io import BytesIO
 
 def PDFCount(folder_location):
     PDFs = []
@@ -76,15 +76,18 @@ def PDF2PNG(folder_location, output_directory, resolution = 800):
             #delete file so NiFi doesn't repeat process on it
             os.remove(filename + ".pdf")
 
-def crop(image_path, coords, saved_location):
+def crop(png, coords):
     """
     @param image_path: The path to the image to edit
     @param coords: A tuple of x/y coordinates (x1, y1, x2, y2)
     @param saved_location: Path to save the cropped image
     """
-    image_obj = PIL.Image.open(image_path)
+    swap = BytesIO()
+    image_obj = PIL.Image.open(png)
     cropped_image = image_obj.crop(coords)
-    cropped_image.save(saved_location)
+    cropped_image.save(swap)
+
+    return swap
 
 
 def findFileName(file):
@@ -117,31 +120,20 @@ def findField(file):
     matches = re.findall('(?<=page-\d_).*$', name)
     return(matches[0])
 
-def findFormNumber(file):
+def findFormNumber(png):
     """
     @@file - the file to find the form number of
     This function takes in a file and spits out the form number associated with it
     """
-    #make a subdirectory to put the image exports if the directory
-    #does not already exist
-    if not os.path.exists('FormNumber'):
-        os.makedirs('FormNumber')
-        
-    #delete any files in that directory so it does not pick up last form number
-    #if there is an error
-    formCrops = [f for f in os.listdir('FormNumber')]
-    for f in formCrops:
-        os.remove('FormNumber/FormNo.png')
         
     #crop bottom of image
-    image = file
-    im = PIL.Image.open(image)
+    im = PIL.Image.open(png)
     width, height = im.size
     while True:
         try:    
-            crop(image, (.04*width,.955*height,.95*width,.98*height), 'FormNumber/FormNo.png')
+            cropped_img = crop(image, (.04*width,.955*height,.95*width,.98*height))
             #run tesseract on crop
-            text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+            text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
             #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
             matches = re.findall('(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
                      , text)
@@ -152,10 +144,10 @@ def findFormNumber(file):
                     break
             elif not matches:
                 print('nothing found in first crop')
-                crop(image, (.04*width,.925*height,.95*width,.955*height), 'FormNumber/FormNo.png')
+                cropped_img = crop(image, (.04*width,.925*height,.95*width,.955*height))
     
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
     
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
@@ -167,10 +159,10 @@ def findFormNumber(file):
     
             if not matches:
                 print('nothing found in second crop')
-                crop(image, (.04*width,.907*height,.95*width,.925*height), 'FormNumber/FormNo.png')
+                cropped_img = crop(image, (.04*width,.907*height,.95*width,.925*height))
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
@@ -182,10 +174,10 @@ def findFormNumber(file):
             
             if not matches:
                 print('nothing found in third crop. Trying dd-mm-yyyy format.')
-                crop(image, (.04*width,.925*height,.95*width,.955*height), 'FormNumber/FormNo.png')
+                cropped_img = crop(image, (.04*width,.925*height,.95*width,.955*height))
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\- ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\- ]\d{2,4})'
@@ -197,10 +189,10 @@ def findFormNumber(file):
                     
             if not matches:
                 print('nothing found in forth crop.')
-                crop(image, (.04*width,.80*height,.95*width,.83*height), 'FormNumber/FormNo.png')
+                cropped_img = crop(image, (.04*width,.80*height,.95*width,.83*height))
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\- ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\- ]\d{2,4})'
@@ -212,10 +204,10 @@ def findFormNumber(file):
             
             if not matches: 
                 print('nothing found in fifth crop')
-                crop(image, (.04*width,.955*height,.95*width,.98*height), 'FormNumber/FormNo.png')
+                cropped_img = crop(image, (.04*width,.955*height,.95*width,.98*height))
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\- ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\- ]\d{2,4})'
@@ -246,7 +238,7 @@ def findPageNumber(file):
     matches = int(matches)
     return(matches)
 
-def tesseract(cropped_images_folder_location):
+def tesseract(crops):
     """
     @@param folder_location folder location for where cropped images are stored
     for tesseract to run on them
@@ -256,13 +248,13 @@ def tesseract(cropped_images_folder_location):
     """
     #set working directory to image_folder_location
     os.chdir(cropped_images_folder_location)
-    
+
     #create list of png images to crop
     croppedImages = []
     for image in os.listdir(cropped_images_folder_location):
         if image.endswith(".png"):
             croppedImages.append(image)
-    
+
     #create empty lists to add data to
     file = []
     field = []
@@ -414,13 +406,12 @@ def tesseract(cropped_images_folder_location):
     df_clean.to_excel(writer)
     writer.save()
     
-def setImageCoords(file):
+def setImageCoords(file, page_number):
     image = file
     im = PIL.Image.open(image)
     width, height = im.size
     
     formNumber = findFormNumber(image)
-    page_number = findPageNumber(image)
     
     if formNumber == '02/02/09':
         #listing out the (x1, y1, x2, y2) coordinates of information on each of 
@@ -747,45 +738,12 @@ def switchCoords2(form_number, page_number):
         coords = switcher.get(form_number, "Invalid form number")
         return(coords)
 
-def PNG2Data(image_folder_location):
-    """
-    @@image_folder_location is the location of the images
-    Takes all images in folder finds their form number and crops them based 
-    on the respective form number, runs tesseract on all of the cropped images, 
-    parses the text output and cleans it, then outputs the result into a 
-    dataframe with the rows representing the file it came from, and the column 
-    representing the field.
-    """    
-    #Make a vector of PNG files in the image directory so it can repeat 
-    #process on all images in directory
-    images = []
-    os.chdir(image_folder_location)
-    for image in os.listdir(image_folder_location):
-        if image.endswith(".png"):
-            images.append(image)
-    
-    #create empty lists to compile information
-    filenames = []
-    
-    #make a subdirectory to put the image exports if the directory
-    #does not already exist
-    if not os.path.exists('CroppedImages'):
-        os.makedirs('CroppedImages')
-    
-    #create variable for name of folder with cropped images
-    cropped_images_folder_location = image_folder_location + '/CroppedImages'
+def PNG2Data(images):
+    crops = []
 
-    #make a subdirectory to put the form number image exports if the directory
-    #does not already exist
-    if not os.path.exists('FormNumber'):
-        os.makedirs('FormNumber')
-        
     #loop through files in folder and find their form number
-    for image in images:
-        #find the filename
-        filename = findFileName(image)
-        filenames.append(filename)
-        
+    for index, image in images:
+
         #find the form number and page number
         form_number = findFormNumber(image)
         
@@ -793,7 +751,7 @@ def PNG2Data(image_folder_location):
         if form_number is None:
             continue
         
-        page_number = findPageNumber(image)
+        page_number = index
         
         #set image coordinates
         setImageCoords(image)
@@ -816,7 +774,7 @@ def PNG2Data(image_folder_location):
                             print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        crop(image, value, 'CroppedImages/' + filename + '_' + key +'.png')
+                        crops.append(crop(image, value))
              else:
                  print("Not a data form")
         else:
@@ -832,18 +790,12 @@ def PNG2Data(image_folder_location):
                             print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        crop(image, value, 'CroppedImages/' + filename + '_' + key +'.png')
+                        crops.append(crop(image, value))
              else:
                  print("Not a data form")
-        
-        #remove the split PDF images so process not repeated on them
-        os.remove(image)
                  
     #run tesseract on folder with cropped images
-    tesseract(cropped_images_folder_location)
-    
-    ###have a process complete message
-    easygui.msgbox("Completed!", title="i9 Processing")
+    tesseract(crops)
     
 if __name__ == '__main__':
     folder_location = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\NiFiTesting'
