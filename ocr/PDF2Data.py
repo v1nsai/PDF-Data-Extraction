@@ -20,7 +20,7 @@ import re
 import pandas as pd
 import numpy as np
 from pandas import ExcelWriter
-from io import BytesIO
+import easygui
 
 def PDFCount(folder_location):
     PDFs = []
@@ -76,18 +76,15 @@ def PDF2PNG(folder_location, output_directory, resolution = 800):
             #delete file so NiFi doesn't repeat process on it
             os.remove(filename + ".pdf")
 
-def crop(png, coords):
+def crop(image_path, coords, saved_location):
     """
     @param image_path: The path to the image to edit
     @param coords: A tuple of x/y coordinates (x1, y1, x2, y2)
     @param saved_location: Path to save the cropped image
     """
-    swap = BytesIO()
-    image_obj = PIL.Image.open(png)
+    image_obj = PIL.Image.open(image_path)
     cropped_image = image_obj.crop(coords)
-    cropped_image.save(swap)
-
-    return swap
+    cropped_image.save(saved_location)
 
 
 def findFileName(file):
@@ -120,20 +117,32 @@ def findField(file):
     matches = re.findall('(?<=page-\d_).*$', name)
     return(matches[0])
 
-def findFormNumber(png):
+def findFormNumber(file):
     """
     @@file - the file to find the form number of
     This function takes in a file and spits out the form number associated with it
     """
+    #make a subdirectory to put the image exports if the directory
+    #does not already exist
+    if not os.path.exists('FormNumber'):
+        os.makedirs('FormNumber')
+        
+    #delete any files in that directory so it does not pick up last form number
+    #if there is an error
+    formCrops = [f for f in os.listdir('FormNumber')]
+    for f in formCrops:
+        os.remove('FormNumber/FormNo.png')
         
     #crop bottom of image
-    im = PIL.Image.open(png)
+    image = file
+    im = PIL.Image.open(image)
     width, height = im.size
+    
     while True:
         try:    
-            cropped_img = crop(image, (.04*width,.955*height,.95*width,.98*height))
+            crop(image, (.04*width,.955*height,.95*width,.98*height), 'FormNumber/FormNo.png')
             #run tesseract on crop
-            text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
+            text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
             #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
             matches = re.findall('(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
                      , text)
@@ -144,10 +153,10 @@ def findFormNumber(png):
                     break
             elif not matches:
                 print('nothing found in first crop')
-                cropped_img = crop(image, (.04*width,.925*height,.95*width,.955*height))
+                crop(image, (.04*width,.925*height,.95*width,.955*height), 'FormNumber/FormNo.png')
     
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
+                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
     
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
@@ -156,13 +165,14 @@ def findFormNumber(png):
                 #output answer
                 for match in matches:
                     return(match[0])
+                    break
     
             if not matches:
                 print('nothing found in second crop')
-                cropped_img = crop(image, (.04*width,.907*height,.95*width,.925*height))
+                crop(image, (.04*width,.907*height,.95*width,.925*height), 'FormNumber/FormNo.png')
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
+                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
@@ -171,13 +181,14 @@ def findFormNumber(png):
                 #output answer
                 for match in matches:
                     return(match[0])
+                    break
             
             if not matches:
                 print('nothing found in third crop. Trying dd-mm-yyyy format.')
-                cropped_img = crop(image, (.04*width,.925*height,.95*width,.955*height))
+                crop(image, (.04*width,.925*height,.95*width,.955*height), 'FormNumber/FormNo.png')
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
+                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\- ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\- ]\d{2,4})'
@@ -186,13 +197,14 @@ def findFormNumber(png):
                 #output answer
                 for match in matches:
                     return(match[0])
+                    break
                     
             if not matches:
                 print('nothing found in forth crop.')
-                cropped_img = crop(image, (.04*width,.80*height,.95*width,.83*height))
+                crop(image, (.04*width,.80*height,.95*width,.83*height), 'FormNumber/FormNo.png')
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
+                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\- ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\- ]\d{2,4})'
@@ -201,13 +213,14 @@ def findFormNumber(png):
                 #output answer
                 for match in matches:
                     return(match[0])
+                    break
             
             if not matches: 
                 print('nothing found in fifth crop')
-                cropped_img = crop(image, (.04*width,.955*height,.95*width,.98*height))
+                crop(image, (.04*width,.955*height,.95*width,.98*height), 'FormNumber/FormNo.png')
             
                 #run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open(cropped_img))
+                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
             
                 #clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall('(\d{2}[\- ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\- ]\d{2,4})'
@@ -216,9 +229,11 @@ def findFormNumber(png):
                 #output answer
                 for match in matches:
                     return(match[0])  
+                    break
                     
-            else:
-                return('not found')
+            if not matches:
+                print('not found')
+                break
         
         except IOError:
             print("image file is truncated")
@@ -238,7 +253,7 @@ def findPageNumber(file):
     matches = int(matches)
     return(matches)
 
-def tesseract(crops):
+def tesseract(cropped_images_folder_location):
     """
     @@param folder_location folder location for where cropped images are stored
     for tesseract to run on them
@@ -248,13 +263,13 @@ def tesseract(crops):
     """
     #set working directory to image_folder_location
     os.chdir(cropped_images_folder_location)
-
+    
     #create list of png images to crop
     croppedImages = []
     for image in os.listdir(cropped_images_folder_location):
         if image.endswith(".png"):
             croppedImages.append(image)
-
+    
     #create empty lists to add data to
     file = []
     field = []
@@ -397,21 +412,43 @@ def tesseract(crops):
     #fill in None values with NA
     df_clean.fillna(value = "NA", inplace = True)
            
-    #output files
-    writer = ExcelWriter('i9Export(FullData).xlsx')
-    df_formatted.to_excel(writer)
-    writer.save()
+    #output data (append to file if already there)
+    subsetFile = 'i9Export(SubsetData).xlsx'
+    fullFile = 'i9Export(FullData).xlsx'
     
-    writer = ExcelWriter('i9Export(SubsetData).xlsx')
-    df_clean.to_excel(writer)
-    writer.save()
+    if subsetFile in os.listdir():
+        subsetExcel = pd.read_excel(subsetFile)
+        os.remove(subsetFile)
+        subsetExcel = subsetExcel.set_index('File')
+        subsetExcel2 = subsetExcel.append(df_clean)
+        writer = ExcelWriter('i9Export(SubsetData).xlsx')
+        subsetExcel2.to_excel(writer)
+        writer.save()
+    else:
+        writer = ExcelWriter('i9Export(SubsetData).xlsx')
+        df_clean.to_excel(writer)
+        writer.save()
     
-def setImageCoords(file, page_number):
+    if fullFile in os.listdir():
+        fullExcel = pd.read_excel(fullFile)
+        os.remove(fullFile)
+        fullExcel = fullExcel.set_index('File')
+        fullExcel2 = fullExcel.append(df_formatted)
+        writer = ExcelWriter('i9Export(FullData).xlsx')
+        fullExcel2.to_excel(writer)
+        writer.save()
+    else:
+        writer = ExcelWriter('i9Export(FullData).xlsx')
+        df_formatted.to_excel(writer)
+        writer.save()        
+    
+def setImageCoords(file):
     image = file
     im = PIL.Image.open(image)
     width, height = im.size
     
     formNumber = findFormNumber(image)
+    page_number = findPageNumber(image)
     
     if formNumber == '02/02/09':
         #listing out the (x1, y1, x2, y2) coordinates of information on each of 
@@ -691,7 +728,125 @@ def setImageCoords(file, page_number):
                 'List A - Document Expiration Date - Third Section': (.06*width,.5188*height,.345*width,.537*height),
                 'Employee Info from Section 1': ()}
 
+    elif (formNumber == '11/14/2016') & (page_number == 0):
+        global image_coords_111416_pg1
+        image_coords_111416_pg1 = {'LastName':(.06*width,.242*height,.335*width,.265*height),
+                        'FirstName': (.34*width,.242*height,.582*width,.265*height), 
+                        'MiddleInitial': (.586*width,.242*height,.689*width,.265*height),
+                        'MaidenName': (.69*width,.242*height,.93*width,.265*height),
+                        'StreetAddress': (.06*width,.279*height,.39*width,.303*height),
+                        #'AptNo': (.395*width,.279*height,.493*width,.303*height),
+                        'City': (.494*width,.279*height,.738*width,.303*height),
+                        'State': (.74*width,.279*height,.802*width,.303*height),
+                        'Zip': (.804*width,.279*height,.93*width,.303*height),
+                        'DateOfBirth': (.06*width,.318*height,.241*width,.346*height),
+                        'SocialSecurity': (.243*width,.318*height,.438*width,.346*height),
+                        'EmailAddress': (.439*width,.318*height,.72*width,.346*height),
+                        'Telephone': (.721*width,.318*height,.93*width,.346*height),
+                        'Attestation': (.06*width,.407*height,.085*width,.492*height),
+                        'Alien # for Permanent Residence': (.573*width,.45*height,.775*width,.47*height),
+                        'Date Expiration of Work Authorization': (.573*width,.472*height,.705*width,.492*height),
+                        'Alien # for Work Authorization': (.36*width,.534*height,.61*width,.561*height),
+                        'Admission # for Work Authorization': (),
+                        'I-94 Admission Number': (.265*width,.56*height,.61*width,.593*height),
+                        'ForeignPassport': (.25*width,.592*height,.61*width,.622*height),
+                        'Country of Issuance': (.225*width,.622*height,.61*width,.645*height),
+                        'TranslatorName': (),
+                        'TranslatorAddress': (.06*width,.861*height,.48*width,.886*height),
+                        'TranslatorDateOfSignature': (.68*width,.789*height,.93*width,.808*height)}
+   
+    elif (formNumber == '11/14/2016') & (page_number == 1):
+        global image_coords_111416_pg2
+        image_coords_111416_pg2 = {'List A - DocumentTitle': (.06*width,.232*height,.335*width,.25*height),
+                        'List A - IssuingAuthority': (.06*width,.262*height,.335*width,.278*height),
+                        'List A - DocumentNumber': (.06*width,.29*height,.335*width,.306*height),
+                        'List A - ExpirationDate': (.06*width,.318*height,.335*width,.334*height),
+                        'List A - DocumentTitle - Second Section': (.06*width,.35*height,.335*width,.366*height),
+                        'List A - IssuingAuthority - Second Section': (.06*width,.379*height,.335*width,.394*height),
+                        'List A - DocumentNumber - Second Section': (.06*width,.405*height,.335*width,.421*height),
+                        'List A - Document Expiration Date - Second Section': (.06*width,.434*height,.335*width,.45*height),
+                        'List B - DocumentTitle': (.361*width,.232*height,.65*width,.25*height),
+                        'List B - IssuingAuthority': (.361*width,.262*height,.65*width,.278*height),
+                        'List B - DocumentNumber': (.361*width,.29*height,.65*width,.306*height),
+                        'List B - ExpirationDate': (.361*width,.318*height,.65*width,.334*height),
+                        'List C - DocumentTitle': (.658*width,.232*height,.94*width,.25*height),
+                        'List C - IssuingAuthority': (.658*width,.262*height,.94*width,.278*height),
+                        'List C - DocumentNumber': (.658*width,.29*height,.94*width,.306*height),
+                        'List C - Expiration Date': (.658*width,.318*height,.94*width,.334*height),
+                        'DateOfHire': (.462*width,.61*height,.6*width,.63*height),
+                        'Name of Employee Representative': (.06*width,.686*height,.64*width,.706*height),
+                        'Title': (.62*width,.652*height,.942*width,.672*height),
+                        'EmployerBusinessName': (.662*width,.686*height,.942*width,.706*height),
+                        'EmployerStreetAddress': (.06*width,.72*height,.5*width,.741*height),
+                        'Date Signed by Employer': (.44*width,.652*height,.62*width,.672*height),
+                        'List A - DocumentTitle - Third Section': (.06*width,.465*height,.335*width,.481*height),
+                        'List A - IssuingAuthority - Third Section': (.06*width,.494*height,.335*width,.509*height),
+                        'List A - DocumentNumber - Third Section': (.06*width,.52*height,.335*width,.535*height),
+                        'List A - Document Expiration Date - Third Section': (.06*width,.549*height,.335*width,.565*height),
+                        'Employee Info from Section 1 - LastName': (.27*width,.177*height,.51*width,.193*height),
+                        'Employee Info from Section 1 - FirstName':(.514*width,.177*height,.705*width,.193*height), 
+                        'Employee Info from Section 1 - Middle Initial': (.706*width,.177*height,.746*width,.193*height)
+                        }
 
+    elif (formNumber == '07/17/17') & (page_number == 0):
+        global image_coords_071717_pg1 
+        image_coords_071717_pg1 = {'LastName':(.065*width,.241*height,.347*width,.265*height),
+                        'FirstName': (.35*width,.241*height,.592*width,.265*height), 
+                        'MiddleInitial': (.596*width,.241*height,.694*width,.265*height),
+                        'MaidenName': (.695*width,.241*height,.945*width,.265*height),
+                        'StreetAddress': (.065*width,.279*height,.39*width,.302*height),
+                        #'AptNo': (.405*width,.279*height,.495*width,.302*height),
+                        'City': (.5*width,.279*height,.74*width,.302*height),
+                        'State': (.746*width,.279*height,.805*width,.302*height),
+                        'Zip': (.808*width,.279*height,.945*width,.302*height),
+                        'DateOfBirth': (.066*width,.318*height,.25*width,.346*height),
+                        'SocialSecurity': (.252*width,.318*height,.445*width,.346*height),
+                        'EmailAddress': (.447*width,.318*height,.725*width,.346*height),
+                        'Telephone': (.727*width,.318*height,.945*width,.346*height),
+                        'Attestation': (.066*width,.407*height,.094*width,.49*height),
+                        'Alien # for Permanent Residence': (.57*width,.449*height,.78*width,.468*height),
+                        'Date Expiration of Work Authorization': (.57*width,.47*height,.72*width,.49*height),
+                        'Alien # for Work Authorization': (.35*width,.537*height,.62*width,.56*height),
+                        'Admission # for Work Authorization': (),
+                        'I-94 Admission Number': (.28*width,.56*height,.62*width,.592*height),
+                        'ForeignPassport': (.26*width,.593*height,.62*width,.623*height),
+                        'Country of Issuance': (.23*width,.622*height,.62*width,.643*height),
+                        'TranslatorName': (.53*width,.819*height,.945*width,.84*height),
+                        'TranslatorAddress': (.068*width,.859*height,.46*width,.882*height),
+                        'TranslatorDateOfSignature': (.688*width,.785*height,.945*width,.805*height)}
+
+    elif (formNumber == '07/17/17') & (page_number == 1):
+        global image_coords_071717_pg2 
+        image_coords_071717_pg2 = {'List A - DocumentTitle': (.068*width,.23*height,.34*width,.249*height),
+                        'List A - IssuingAuthority': (.068*width,.26*height,.34*width,.277*height),
+                        'List A - DocumentNumber': (.068*width,.287*height,.34*width,.304*height),
+                        'List A - ExpirationDate': (.068*width,.316*height,.34*width,.333*height),
+                        'List A - DocumentTitle - Second Section': (.068*width,.347*height,.34*width,.365*height),
+                        'List A - IssuingAuthority - Second Section': (.068*width,.376*height,.34*width,.393*height),
+                        'List A - DocumentNumber - Second Section': (.068*width,.402*height,.34*width,.419*height),
+                        'List A - Document Expiration Date - Second Section': (.068*width,.431*height,.34*width,.448*height),
+                        'List B - DocumentTitle': (.365*width,.232*height,.655*width,.25*height),
+                        'List B - IssuingAuthority': (.365*width,.26*height,.655*width,.277*height),
+                        'List B - DocumentNumber': (.365*width,.287*height,.655*width,.304*height),
+                        'List B - ExpirationDate': (.365*width,.316*height,.655*width,.333*height),
+                        'List C - DocumentTitle': (.658*width,.232*height,.94*width,.25*height),
+                        'List C - IssuingAuthority': (.658*width,.26*height,.94*width,.277*height),
+                        'List C - DocumentNumber': (.658*width,.287*height,.94*width,.304*height),
+                        'List C - Expiration Date': (.658*width,.316*height,.94*width,.333*height),
+                        'DateOfHire': (.464*width,.61*height,.61*width,.63*height),
+                        'Name of Employee Representative': (.068*width,.683*height,.64*width,.703*height),
+                        'Title': (.625*width,.649*height,.945*width,.669*height),
+                        'EmployerBusinessName': (.666*width,.683*height,.945*width,.703*height),
+                        'EmployerStreetAddress': (.068*width,.7172*height,.5*width,.737*height),
+                        'Date Signed by Employer': (.443*width,.649*height,.623*width,.669*height),
+                        'List A - DocumentTitle - Third Section': (.068*width,.462*height,.34*width,.481*height),
+                        'List A - IssuingAuthority - Third Section': (.068*width,.492*height,.34*width,.506*height),
+                        'List A - DocumentNumber - Third Section': (.068*width,.517*height,.34*width,.532*height),
+                        'List A - Document Expiration Date - Third Section': (.068*width,.546*height,.34*width,.562*height),
+                        'Employee Info from Section 1 - LastName': (.274*width,.177*height,.514*width,.193*height),
+                        'Employee Info from Section 1 - FirstName':(.516*width,.177*height,.708*width,.193*height), 
+                        'Employee Info from Section 1 - Middle Initial': (.71*width,.177*height,.748*width,.193*height)
+                        }
     
     else:
         print("Dimensions not found for form number" + formNumber)
@@ -705,6 +860,10 @@ image_coords_080709 = {}
 image_coords_053105 = {}
 image_coords_030813_pg6 = {}
 image_coords_030813_pg7 = {}
+image_coords_071717_pg1 = {} 
+image_coords_071717_pg2 = {}
+image_coords_111416_pg1 = {} 
+image_coords_111416_pg2 = {}
 
 def switchCoords(form_number):
     switcher = {
@@ -727,6 +886,24 @@ def switchCoords2(form_number, page_number):
             return(coords)
         else:
             print("This page does not contain data")
+    elif form_number == '07/17/17':
+        if page_number == 0:
+            coords = image_coords_071717_pg1
+            return(coords)
+        elif page_number == 1:
+            coords = image_coords_071717_pg2
+            return(coords)
+        else:
+            print("This page does not contain data")        
+    elif form_number == '11/14/2016':
+        if page_number == 0:
+            coords = image_coords_111416_pg1
+            return(coords)
+        elif page_number == 1:
+            coords = image_coords_111416_pg2
+            return(coords)
+        else:
+            print("This page does not contain data")  
     else:
         switcher = {
                 '02/02/09': image_coords_020209,
@@ -738,20 +915,54 @@ def switchCoords2(form_number, page_number):
         coords = switcher.get(form_number, "Invalid form number")
         return(coords)
 
-def PNG2Data(images):
-    crops = []
+def PNG2Data(image_folder_location):
+    """
+    @@image_folder_location is the location of the images
+    Takes all images in folder finds their form number and crops them based 
+    on the respective form number, runs tesseract on all of the cropped images, 
+    parses the text output and cleans it, then outputs the result into a 
+    dataframe with the rows representing the file it came from, and the column 
+    representing the field.
+    """    
+    #Make a vector of PNG files in the image directory so it can repeat 
+    #process on all images in directory
+    images = []
+    os.chdir(image_folder_location)
+    for image in os.listdir(image_folder_location):
+        if image.endswith(".png"):
+            images.append(image)
+    
+    #create empty lists to compile information
+    filenames = []
+    
+    #make a subdirectory to put the image exports if the directory
+    #does not already exist
+    if not os.path.exists('CroppedImages'):
+        os.makedirs('CroppedImages')
+    
+    #create variable for name of folder with cropped images
+    cropped_images_folder_location = image_folder_location + '/CroppedImages'
 
+    #make a subdirectory to put the form number image exports if the directory
+    #does not already exist
+    if not os.path.exists('FormNumber'):
+        os.makedirs('FormNumber')
+        
     #loop through files in folder and find their form number
-    for index, image in images:
-
+    for image in images:
+        #find the filename
+        filename = findFileName(image)
+        filenames.append(filename)
+        
         #find the form number and page number
         form_number = findFormNumber(image)
         
         #check if form_number found. If not, continue to next image. 
         if form_number is None:
+            os.remove(image)
             continue
         
-        page_number = index
+        page_number = findPageNumber(image)
         
         #set image coordinates
         setImageCoords(image)
@@ -774,7 +985,7 @@ def PNG2Data(images):
                             print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        crops.append(crop(image, value))
+                        crop(image, value, 'CroppedImages/' + filename + '_' + key +'.png')
              else:
                  print("Not a data form")
         else:
@@ -790,19 +1001,25 @@ def PNG2Data(images):
                             print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        crops.append(crop(image, value))
+                        crop(image, value, 'CroppedImages/' + filename + '_' + key +'.png')
              else:
                  print("Not a data form")
+        
+        #remove the split PDF images so process not repeated on them
+        os.remove(image)
                  
     #run tesseract on folder with cropped images
-    tesseract(crops)
+    tesseract(cropped_images_folder_location)
+    
+    ###have a process complete message
+    easygui.msgbox("Completed!", title="i9 Processing")
     
 if __name__ == '__main__':
     folder_location = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\NiFiTesting'
     output_directory = 'PythonPNGs'
     
     #convert PDFs to images
-    PDF2PNG(folder_location, output_directory, resolution = 600)
+    PDF2PNG(folder_location, output_directory, resolution = 300)
     
     #listing out what page the information we want is on for each form
     page_info = {'05/07/87': 0,
@@ -830,3 +1047,5 @@ if __name__ == '__main__':
         PNG2Data(image_folder_location)
     else:
         print("No images to extract text from.")
+        
+    file = 'C:\\Users\\Brandon Croarkin\\Documents\\GreenZone\\OCR\\NiFiTesting\\PythonPNGs\\CroppedImages\\i9Export(SubsetData).xlsx'
