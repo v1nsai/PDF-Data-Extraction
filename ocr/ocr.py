@@ -4,6 +4,8 @@ import io
 import PIL
 import pandas as pd
 import pytesseract
+import os
+import re
 
 
 
@@ -671,207 +673,6 @@ def crop(image_path, coords, saved_location):
     cropped_image = image_obj.crop(coords)
     cropped_image.save(saved_location)
 
-
-def tesseract(cropped_images_folder_location):
-    """
-    @@param folder_location folder location for where cropped images are stored
-    for tesseract to run on them
-    Runs tesseract on all of the cropped images and exports the results into
-    an excel spreadsheet containing the original file name, the field name,
-    the text tesseract originally extract, and the text cleaned after regex.
-    """
-    # set working directory to image_folder_location
-    os.chdir(cropped_images_folder_location)
-
-    # create list of png images to crop
-    croppedImages = []
-    for image in os.listdir(cropped_images_folder_location):
-        if image.endswith(".png"):
-            croppedImages.append(image)
-
-    # create empty lists to add data to
-    file = []
-    field = []
-    text = []
-    cleaned_text = []
-
-    # run tesseract on all of the images and then delete
-    for i in range(len(croppedImages)):
-        # pulling out the file name from beginning of string
-        file.append(findOriginalFileName(croppedImages[i]))
-        # pulling out the field name from middle of string
-        field.append(findField(croppedImages[i]))
-        # running tesseract on the image
-        text.append(pytesseract.image_to_string(PIL.Image.open(croppedImages[i])))
-        # delete cropped image so NiFi doesn't repeat process on same image
-        os.remove(croppedImages[i])
-
-    # pulling all the information after the heading
-    for i in range(len(text)):
-        if len(text[i]) > 0:
-            cleaned_text.append(re.search(r'[^\n]+$', text[i]).group())
-        # add in a "no value found" if empty
-        else:
-            cleaned_text.append("No value found")
-
-    # create dataframe of the values
-    df = pd.DataFrame({'File': file,
-                       'Field': field,
-                       'TesseractText': text,
-                       'CleanedText': cleaned_text})
-
-    # format dataframe into the Excel format
-    df_formatted = df.reset_index().pivot(index='File', columns='Field', values='CleanedText')
-
-    # clean dataframe
-    for i in range(len(df_formatted)):
-        df_formatted['Zip'][i] = df_formatted['Zip'][i].replace('O', '0').replace(" ", "").replace("l", "1")
-        df_formatted['DateOfBirth'][i] = df_formatted['DateOfBirth'][i].replace('O', '0').replace(" ", "").replace("\\",
-                                                                                                                   "").replace(
-            "l", "1").replace("'", "").replace("‘", "")
-        if 'Telephone' in df_formatted:
-            if df_formatted['Telephone'][i] is None:
-                continue
-            else:
-                df_formatted['Telephone'][i] = df_formatted['Telephone'][i].replace('(', '').replace(')', "").replace(
-                    " ", "").replace("-", "")
-        else:
-            continue
-
-    ###make a second dataframe with just the main columns of interest
-    # make the list of columns to grab
-    columns = ['LastName', 'FirstName', 'DateOfBirth', 'SocialSecurity', 'Attestation',
-               'Alien # for Permanent Residence', 'Alien # for Work Authorization',
-               'StreetAddress', 'City', 'State', 'Zip', 'TranslatorName',
-               'List A - DocumentTitle', 'List A - DocumentNumber',
-               'List B - DocumentTitle', 'List B - DocumentNumber',
-               'List C - DocumentTitle', 'List C - DocumentNumber',
-               'DateOfHire']
-
-    # create a dictionary to get the text value needed
-    attestation_dict = {0: 'A citizen of the United States',
-                        1: 'A noncitizen of the United States',
-                        2: 'A lawful permanent resident (Alien #)',
-                        3: 'An alien authorized to work'
-                        }
-
-    # choose the selected columns from df_clean
-    df_clean = df_formatted.loc[:, columns]
-
-    # create columns to add to df_clean
-    AlienAdmissionNumber = []
-    DocumentTitle = []
-    DocumentNumber = []
-
-    # update values in the rows
-    for i in range(len(df_formatted)):
-        # find the index value of the K in Attestation
-        try:
-            df_clean['Attestation'][i] = attestation_dict[df_formatted['Attestation'][i].find('K')]
-        except KeyError:
-            df_clean['Attestation'][i] = "Attestation not found"
-
-        # use Alien # to help fill in Attestation
-        if (df_clean['Attestation'][i] == 'Attestation not found'):
-            if (df_formatted['Alien # for Permanent Residence'][i] != 'No value found') & (
-                    df_formatted['Alien # for Permanent Residence'][i] is not None):
-                df_clean['Attestation'][i] = 'A lawful permanent resident (Alien #)'
-            elif (df_formatted['Alien # for Work Authorization'][i] != 'No value found') & (
-                    df_formatted['Alien # for Work Authorization'][i] is not None):
-                df_clean['Attestation'][i] = 'An alien authorized to work'
-            else:
-                continue
-        else:
-            continue
-    for i in range(len(df_formatted)):
-        # set A# or Admission# value depending on Attestation
-        if df_clean['Attestation'][i] == 'A citizen of the United States':
-            AlienAdmissionNumber.append('NA')
-        elif (df_clean['Attestation'][i] == 'A lawful permanent resident (Alien #)'):
-            AlienAdmissionNumber.append(df_clean['Alien # for Permanent Residence'][i])
-        elif (df_clean['Attestation'][i] == 'An alien authorized to work'):
-            AlienAdmissionNumber.append(df_clean['Alien # for Work Authorization'][i])
-        else:
-            AlienAdmissionNumber.append('NA')
-
-    for i in range(len(df_formatted)):
-
-        # set document title
-        if (df_clean['List A - DocumentTitle'][i] != 'No value found') and (
-                df_clean['List A - DocumentTitle'][i] is not None):
-            DocumentTitle.append(df_clean['List A - DocumentTitle'][i])
-        else:
-            if (df_clean['List B - DocumentTitle'][i] is not None) & (
-                    df_clean['List C - DocumentTitle'][i] is not None):
-                DocumentTitle.append(
-                    df_clean['List B - DocumentTitle'][i] + " and " + df_clean['List C - DocumentTitle'][i])
-            else:
-                DocumentTitle.append("NA")
-
-        # set document number
-        if (df_clean['List A - DocumentNumber'][i] != 'No value found') and (
-                df_clean['List A - DocumentNumber'][i] is not None):
-            DocumentNumber.append(df_clean['List A - DocumentNumber'][i])
-        else:
-            if (df_clean['List B - DocumentNumber'][i] is not None) & (
-                    df_clean['List C - DocumentNumber'][i] is not None):
-                DocumentNumber.append(
-                    df_clean['List B - DocumentNumber'][i] + " and " + df_clean['List C - DocumentNumber'][i])
-            else:
-                DocumentNumber.append("NA")
-
-    # create new columns from the lists
-    df_clean['A# or Admission#'] = AlienAdmissionNumber
-    df_clean['DocumentTitle'] = DocumentTitle
-    df_clean['DocumentNumber'] = DocumentNumber
-
-    # delete uneeded columns
-    cols_to_delete = ['Alien # for Permanent Residence', 'Alien # for Work Authorization',
-                      'List A - DocumentTitle', 'List B - DocumentTitle', 'List A - DocumentNumber',
-                      'List B - DocumentNumber', 'List C - DocumentTitle', 'List C - DocumentNumber']
-
-    df_clean.drop(cols_to_delete, axis=1, inplace=True)
-
-    # order columns
-    cols = ['LastName', 'FirstName', 'DateOfBirth', 'SocialSecurity', 'Attestation',
-            'A# or Admission#', 'StreetAddress', 'City', 'State', 'Zip', 'TranslatorName',
-            'DocumentTitle', 'DocumentNumber', 'DateOfHire']
-
-    df_clean = df_clean[cols]
-
-    # fill in None values with NA
-    df_clean.fillna(value="NA", inplace=True)
-
-    # output data (append to file if already there)
-    subsetFile = 'i9Export(SubsetData).xlsx'
-    fullFile = 'i9Export(FullData).xlsx'
-
-    if subsetFile in os.listdir():
-        subsetExcel = pd.read_excel(subsetFile)
-        os.remove(subsetFile)
-        subsetExcel = subsetExcel.set_index('File')
-        subsetExcel2 = subsetExcel.append(df_clean)
-        writer = ExcelWriter('i9Export(SubsetData).xlsx')
-        subsetExcel2.to_excel(writer)
-        writer.save()
-    else:
-        writer = ExcelWriter('i9Export(SubsetData).xlsx')
-        df_clean.to_excel(writer)
-        writer.save()
-
-    if fullFile in os.listdir():
-        fullExcel = pd.read_excel(fullFile)
-        os.remove(fullFile)
-        fullExcel = fullExcel.set_index('File')
-        fullExcel2 = fullExcel.append(df_formatted)
-        writer = ExcelWriter('i9Export(FullData).xlsx')
-        fullExcel2.to_excel(writer)
-        writer.save()
-    else:
-        writer = ExcelWriter('i9Export(FullData).xlsx')
-        df_formatted.to_excel(writer)
-        writer.save()
-
 ######################################
 ########## main thread ###############
 ######################################
@@ -963,3 +764,6 @@ for index, page in PNGs:
         else:
             print("Not a data form")
 
+    ocrs = crops
+    for key, value in ocrs.items():
+        ocrs[key][text] = (pytesseract.image_to_string(PIL.Image.open(ocrs[key])))
