@@ -688,10 +688,10 @@ def crop(image_path, coords):
 ######################################
 
 # Put the incoming FlowFile into a dataframe
-# flowFile = sys.stdin.buffer.read()
-# flowFile = io.BytesIO(flowFile)
+flowFile = sys.stdin.buffer.read()
+flowFile = io.BytesIO(flowFile)
 
-flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_05-07-87.pdf', 'rb')
+# flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_05-07-87.pdf', 'rb')
 
 # Declare the empty list of PNGs
 PNGs = []
@@ -780,3 +780,5 @@ for i in range(len(PNGs)):
     for key, value in crops.items():
         ocrs[key] = (pytesseract.image_to_string(PIL.Image.open(crops[key])))
 
+
+sys.stdout.write(ocrs)
