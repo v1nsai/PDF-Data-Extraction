@@ -2,10 +2,9 @@ from wand.image import Image
 import sys
 import io
 import PIL
-import pandas as pd
 import pytesseract
-import os
 import re
+import json
 
 image_coords_020209 = {}
 image_coords_050787 = {}
@@ -688,10 +687,10 @@ def crop(image_path, coords):
 ######################################
 
 # Put the incoming FlowFile into a dataframe
-flowFile = sys.stdin.buffer.read()
-flowFile = io.BytesIO(flowFile)
+# flowFile = sys.stdin.buffer.read()
+# flowFile = io.BytesIO(flowFile)
 
-# flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_05-07-87.pdf', 'rb')
+flowFile = open(r'TestDataFiles/i-9_05-07-87.pdf', 'rb')
 
 # Declare the empty list of PNGs
 PNGs = []
@@ -780,5 +779,5 @@ for i in range(len(PNGs)):
     for key, value in crops.items():
         ocrs[key] = (pytesseract.image_to_string(PIL.Image.open(crops[key])))
 
-
-sys.stdout.write(ocrs)
+output = json.dumps(ocrs)
+sys.stdout.write(output)
