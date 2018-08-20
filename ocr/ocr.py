@@ -7,7 +7,17 @@ import pytesseract
 import os
 import re
 
-
+image_coords_020209 = {}
+image_coords_050787 = {}
+image_coords_060507 = {}
+image_coords_080709 = {}
+image_coords_053105 = {}
+image_coords_030813_pg6 = {}
+image_coords_030813_pg7 = {}
+image_coords_071717_pg1 = {}
+image_coords_071717_pg2 = {}
+image_coords_111416_pg1 = {}
+image_coords_111416_pg2 = {}
 
 def findFormNumber(file):
     """
@@ -22,9 +32,9 @@ def findFormNumber(file):
 
     while True:
         try:
-            crop(image, (.04 * width, .955 * height, .95 * width, .98 * height), 'FormNumber/FormNo.png')
+            swap = crop(image, (.04 * width, .955 * height, .95 * width, .98 * height))
             # run tesseract on crop
-            text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+            text = pytesseract.image_to_string(PIL.Image.open(swap))
             # clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
             matches = re.findall(
                 '(\d{2}[\/ ](\d{2}|January|Jan|February|Feb|March|Mar|April|Apr|May|May|June|Jun|July|Jul|August|Aug|September|Sep|October|Oct|November|Nov|December|Dec)[\/ ]\d{2,4})'
@@ -36,10 +46,10 @@ def findFormNumber(file):
                     break
             elif not matches:
                 print('nothing found in first crop')
-                crop(image, (.04 * width, .925 * height, .95 * width, .955 * height), 'FormNumber/FormNo.png')
+                swap = crop(image, (.04 * width, .925 * height, .95 * width, .955 * height))
 
                 # run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(swap))
 
                 # clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall(
@@ -53,10 +63,10 @@ def findFormNumber(file):
 
             if not matches:
                 print('nothing found in second crop')
-                crop(image, (.04 * width, .907 * height, .95 * width, .925 * height), 'FormNumber/FormNo.png')
+                swap = crop(image, (.04 * width, .907 * height, .95 * width, .925 * height))
 
                 # run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(swap))
 
                 # clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall(
@@ -70,10 +80,10 @@ def findFormNumber(file):
 
             if not matches:
                 print('nothing found in third crop. Trying dd-mm-yyyy format.')
-                crop(image, (.04 * width, .925 * height, .95 * width, .955 * height), 'FormNumber/FormNo.png')
+                swap = crop(image, (.04 * width, .925 * height, .95 * width, .955 * height))
 
                 # run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(swap))
 
                 # clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall(
@@ -87,10 +97,10 @@ def findFormNumber(file):
 
             if not matches:
                 print('nothing found in forth crop.')
-                crop(image, (.04 * width, .80 * height, .95 * width, .83 * height), 'FormNumber/FormNo.png')
+                swap = crop(image, (.04 * width, .80 * height, .95 * width, .83 * height))
 
                 # run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(swap))
 
                 # clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall(
@@ -104,10 +114,10 @@ def findFormNumber(file):
 
             if not matches:
                 print('nothing found in fifth crop')
-                crop(image, (.04 * width, .955 * height, .95 * width, .98 * height), 'FormNumber/FormNo.png')
+                swap = crop(image, (.04 * width, .955 * height, .95 * width, .98 * height))
 
                 # run tesseract on crop
-                text = pytesseract.image_to_string(PIL.Image.open('FormNumber/FormNo.png'))
+                text = pytesseract.image_to_string(PIL.Image.open(swap))
 
                 # clean output to just pull revision date with either dd/mm/yy or dd-mm-yy format
                 matches = re.findall(
@@ -620,9 +630,7 @@ def setImageCoords(file, page_number, formNumber):
                                    }
 
     else:
-        print("Dimensions not found for form number" + formNumber)
-
-    im.close()
+        print("Dimensions not found for form number " + formNumber)
 
 def switchCoords2(form_number, page_number):
     if form_number == '03/08/13':
@@ -663,7 +671,7 @@ def switchCoords2(form_number, page_number):
         coords = switcher.get(form_number, "Invalid form number")
         return(coords)
 
-def crop(image_path, coords, saved_location):
+def crop(image_path, coords):
     """
     @param image_path: The path to the image to edit
     @param coords: A tuple of x/y coordinates (x1, y1, x2, y2)
@@ -671,15 +679,19 @@ def crop(image_path, coords, saved_location):
     """
     image_obj = PIL.Image.open(image_path)
     cropped_image = image_obj.crop(coords)
-    cropped_image.save(saved_location)
+    swap = io.BytesIO()
+    cropped_image.save(swap, 'png')
+    return swap
 
 ######################################
 ########## main thread ###############
 ######################################
 
 # Put the incoming FlowFile into a dataframe
-flowFile = sys.stdin.buffer.read()
-flowFile = io.BytesIO(flowFile)
+# flowFile = sys.stdin.buffer.read()
+# flowFile = io.BytesIO(flowFile)
+
+flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_05-07-87.pdf', 'rb')
 
 # Declare the empty list of PNGs
 PNGs = []
@@ -689,14 +701,16 @@ with Image(file=flowFile, resolution=200) as img:
     # loop through pages of PDF and convert each into a separate PNG
     for i, page in enumerate(img.sequence):
         with Image(page) as im:
-            img.alpha_channel = False
-            img.format = 'png'
+            im.alpha_channel = False
+            im.format = 'png'
 
             swapPNG = io.BytesIO()
-            img.save(swapPNG)
-            PNGs = PNGs.append(swapPNG)
+            im.save(swapPNG)
+            PNGs.append(swapPNG)
 
-for index, page in PNGs:
+for i in range(len(PNGs)):
+    print('Page ' + str(i))
+    page = PNGs[i]
     form_number = findFormNumber(page)
 
     # check if form_number found. If not, continue to next image.
@@ -704,7 +718,7 @@ for index, page in PNGs:
         continue
 
     # The pages are in order in the PNGs list, so just grab the index
-    page_number = index
+    page_number = i
 
     # Set the global vars to the correct coordinates
     setImageCoords(page, page_number, form_number)
@@ -740,8 +754,7 @@ for index, page in PNGs:
                         print(key, "has an incorrect number of dimensions.")
                         continue
                 else:
-                    swap = io.BytesIO()
-                    crop(page, value, swap)
+                    swap = crop(page, value)
                     crops[key] = swap
         else:
             print("Not a data form")
@@ -758,12 +771,12 @@ for index, page in PNGs:
                         print(key, "has an incorrect number of dimensions.")
                         continue
                 else:
-                    swap = io.BytesIO()
-                    crop(page, value, swap)
+                    swap = crop(page, value)
                     crops[key] = swap
         else:
             print("Not a data form")
 
-    ocrs = crops
-    for key, value in ocrs.items():
-        ocrs[key][text] = (pytesseract.image_to_string(PIL.Image.open(ocrs[key])))
+    ocrs = {}
+    for key, value in crops.items():
+        ocrs[key] = (pytesseract.image_to_string(PIL.Image.open(crops[key])))
+
