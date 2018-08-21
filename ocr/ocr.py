@@ -210,21 +210,22 @@ def setImageCoords(file, page_number, formNumber):
 
     elif formNumber == '08/07/09':
         global image_coords_080709
-        image_coords_080709 = {'LastName': (.055 * width, .17 * height, .37 * width, .205 * height),
-                               'FirstName': (.37 * width, .17 * height, .61 * width, .205 * height),
-                               'DateOfBirth': (.69 * width, .205 * height, .94 * width, .241 * height),
-                               'SocialSecurity': (.69 * width, .241 * height, .94 * width, .277 * height),
+        image_coords_080709 = {'LastName': (.055 * width, .185 * height, .37 * width, .205 * height),
+                               'FirstName': (.37 * width, .185 * height, .61 * width, .205 * height),
+                               'DateOfBirth': (.69 * width, .22 * height, .94 * width, .241 * height),
+                               'SocialSecurity': (.69 * width, .255 * height, .94 * width, .277 * height),
                                'Attestation': (.49 * width, .29 * height, .515 * width, .367 * height),
                                'Alien # for Permanent Residence': (
                                .725 * width, .325 * height, .945 * width, .345 * height),
                                'Alien # for Work Authorization': (
                                .81 * width, .345 * height, .94 * width, .363 * height),
-                               'StreetAddress': (.055 * width, .205 * height, .58 * width, .241 * height),
-                               'City': (.055 * width, .241 * height, .34 * width, .277 * height),
-                               'State': (.34 * width, .241 * height, .58 * width, .277 * height),
-                               'Zip': (.58 * width, .241 * height, .68 * width, .277 * height),
+                               'StreetAddress': (.055 * width, .22 * height, .58 * width, .241 * height),
+                               'City': (.055 * width, .255 * height, .34 * width, .277 * height),
+                               'State': (.34 * width, .255 * height, .58 * width, .277 * height),
+                               'Zip': (.58 * width, .255 * height, .68 * width, .277 * height),
                                'WorkAuthorization': (),
-                               'Translator': (.515 * width, .432 * height, .88 * width, .47 * height),
+                               'Translator': (.515 * width, .445 * height, .88 * width, .47 * height),
+                               'TranslatorAddress': (.06 * width, .485 * height, .671 * width, .502 * height),
                                'DocumentTitle1': (.14 * width, .561 * height, .36 * width, .59 * height),
                                'DocumentTitle2': (.39 * width, .561 * height, .625 * width, .586 * height),
                                'DocumentTitle3': (.71 * width, .561 * height, .945 * width, .586 * height),
@@ -240,8 +241,10 @@ def setImageCoords(file, page_number, formNumber):
                                'Expiration Date3': (.71 * width, .625 * height, .945 * width, .645 * height),
                                'Expiration Date4': (.22 * width, .6624 * height, .358 * width, .683 * height),
                                'DateOfHire': (),
-                               'MiddleInitial': (.61 * width, .17 * height, .685 * width, .205 * height),
-                               'ApartmentNo': (.57 * width, .205 * height, .66 * width, .241 * height)}
+                               'MiddleInitial': (.61 * width, .185 * height, .685 * width, .205 * height),
+                               'ApartmentNo': (.57 * width, .22 * height, .66 * width, .241 * height),
+                               'MaidenName': (.69 * width, .185 * height, .94 * width, .205 * height)
+                               }
 
     elif formNumber == '05/07/87':
         global image_coords_050787
@@ -691,7 +694,7 @@ flowFile = sys.stdin.buffer.read()
 flowFile = io.BytesIO(flowFile)
 
 # flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_03-08-13.pdf', 'rb')
-# flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_05-07-87.pdf', 'rb')
+# flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_08-07-09.pdf', 'rb')
 
 # Declare the empty list of PNGs
 PNGs = []
@@ -755,6 +758,7 @@ for i in range(len(PNGs)):
                         print(key, "has an incorrect number of dimensions.")
                         continue
                 else:
+                    print(key + ' : ' + str(value))
                     swap = crop(page, value)
                     crops[key] = swap
         else:
@@ -772,6 +776,7 @@ for i in range(len(PNGs)):
                         print(key, "has an incorrect number of dimensions.")
                         continue
                 else:
+                    print(key + ' : ' + str(value))
                     swap = crop(page, value)
                     crops[key] = swap
         else:
