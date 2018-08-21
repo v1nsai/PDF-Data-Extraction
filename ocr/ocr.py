@@ -670,13 +670,13 @@ def switchCoords2(form_number, page_number):
         coords = switcher.get(form_number, "Invalid form number")
         return(coords)
 
-def crop(image_path, coords):
+def crop(iamge, coords):
     """
     @param image_path: The path to the image to edit
     @param coords: A tuple of x/y coordinates (x1, y1, x2, y2)
     @param saved_location: Path to save the cropped image
     """
-    image_obj = PIL.Image.open(image_path)
+    image_obj = PIL.Image.open(image)
     cropped_image = image_obj.crop(coords)
     swap = io.BytesIO()
     cropped_image.save(swap, 'png')
@@ -742,8 +742,6 @@ for i in range(len(PNGs)):
 
     # determine if this file contains data based on page_info lookup table and then
     # crop the image if it does
-    print('isinstance == ' + str(isinstance(page_info[form_number], int)))
-    # print('dual page handling == ' + str((page_info[form_number][0] == page_number) or (page_info[form_number][1] == page_number)))
     if isinstance(page_info[form_number], int):
         if page_info[form_number] == page_number:
             # loop through the coordinates for each attribute and create a new image
