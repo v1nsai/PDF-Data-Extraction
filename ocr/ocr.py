@@ -687,10 +687,11 @@ def crop(image_path, coords):
 ######################################
 
 # Put the incoming FlowFile into a dataframe
-# flowFile = sys.stdin.buffer.read()
-# flowFile = io.BytesIO(flowFile)
+flowFile = sys.stdin.buffer.read()
+flowFile = io.BytesIO(flowFile)
 
-flowFile = open(r'TestDataFiles/i-9_05-07-87.pdf', 'rb')
+# flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_03-08-13.pdf', 'rb')
+# flowFile = open(r'C:\Users\Andrew Riffle\PycharmProjects\PDF-Data-Extraction\ocr\TestDataFiles\i-9_05-07-87.pdf', 'rb')
 
 # Declare the empty list of PNGs
 PNGs = []
@@ -706,6 +707,8 @@ with Image(file=flowFile, resolution=200) as img:
             swapPNG = io.BytesIO()
             im.save(swapPNG)
             PNGs.append(swapPNG)
+
+crops = {}
 
 for i in range(len(PNGs)):
     print('Page ' + str(i))
@@ -725,7 +728,6 @@ for i in range(len(PNGs)):
     # Get coords for given form and page number
     coords = switchCoords2(form_number, page_number)
 
-    crops = {}
     page_info = {'05/07/87': 0,
                  '11-21-91(L)': 0,
                  '11-21-91(R)': 1,
@@ -740,6 +742,8 @@ for i in range(len(PNGs)):
 
     # determine if this file contains data based on page_info lookup table and then
     # crop the image if it does
+    print('isinstance == ' + str(isinstance(page_info[form_number], int)))
+    # print('dual page handling == ' + str((page_info[form_number][0] == page_number) or (page_info[form_number][1] == page_number)))
     if isinstance(page_info[form_number], int):
         if page_info[form_number] == page_number:
             # loop through the coordinates for each attribute and create a new image
