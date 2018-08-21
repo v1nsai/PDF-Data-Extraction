@@ -670,7 +670,7 @@ def switchCoords2(form_number, page_number):
         coords = switcher.get(form_number, "Invalid form number")
         return(coords)
 
-def crop(iamge, coords):
+def crop(image, coords):
     """
     @param image_path: The path to the image to edit
     @param coords: A tuple of x/y coordinates (x1, y1, x2, y2)
