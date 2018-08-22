@@ -52,7 +52,7 @@ def findFormNumber(file):
                     break
                 
             elif not matches:
-                print('nothing found in first crop')
+                # print('nothing found in first crop')
                 swap = crop(image, (.04*width,.945*height,.95*width,.97*height))
     
                 #run tesseract on crop
@@ -68,7 +68,7 @@ def findFormNumber(file):
                     break
                 
             elif not matches:
-                print('nothing found in second crop')
+                # print('nothing found in second crop')
                 swap = crop(image, (.04*width,.925*height,.95*width,.955*height))
 
                 #run tesseract on crop
@@ -84,7 +84,7 @@ def findFormNumber(file):
                     break
     
             if not matches:
-                print('nothing found in third crop')
+                # print('nothing found in third crop')
                 swap = crop(image, (.04*width,.907*height,.95*width,.925*height))
             
                 #run tesseract on crop
@@ -100,7 +100,7 @@ def findFormNumber(file):
                     break
             
             if not matches:
-                print('nothing found in fourth crop. Trying dd-mm-yyyy format.')
+                # print('nothing found in fourth crop. Trying dd-mm-yyyy format.')
                 swap = crop(image, (.04*width,.925*height,.955*width,.955*height))
             
                 #run tesseract on crop
@@ -116,7 +116,7 @@ def findFormNumber(file):
                     break
                     
             if not matches:
-                print('nothing found in fifth crop.')
+                # print('nothing found in fifth crop.')
                 swap = crop(image, (.04*width,.80*height,.955*width,.83*height))
             
                 #run tesseract on crop
@@ -132,7 +132,7 @@ def findFormNumber(file):
                     break
             
             if not matches: 
-                print('nothing found in sixth crop')
+                # print('nothing found in sixth crop')
                 swap = crop(image, (.04*width,.955*height,.95*width,.98*height))
             
                 #run tesseract on crop
@@ -148,11 +148,11 @@ def findFormNumber(file):
                     break
                     
             if not matches:
-                print('not found')
+                # print('not found')
                 break
         
         except IOError:
-            print("image file is truncated")
+            # print("image file is truncated")
             break
 
 def findPageNumber(file):
@@ -179,7 +179,7 @@ def findPageNumber(file):
                     return(int(match[0]))
                     break
             elif not matches:
-                print('nothing found in first crop')
+                # print('nothing found in first crop')
                 swap = crop(image, (.04*width,.945*height,.95*width,.97*height))
     
                 #run tesseract on crop
@@ -193,7 +193,7 @@ def findPageNumber(file):
                     return(int(match[0]))
                     break
             elif not matches:
-                print('nothing found in second crop')
+                # print('nothing found in second crop')
                 swap = crop(image, (.04*width,.925*height,.95*width,.955*height))
     
                 #run tesseract on crop
@@ -208,7 +208,7 @@ def findPageNumber(file):
                     break
     
             if not matches:
-                print('nothing found in third crop')
+                # print('nothing found in third crop')
                 swap = crop(image, (.04*width,.907*height,.95*width,.925*height))
             
                 #run tesseract on crop
@@ -223,7 +223,7 @@ def findPageNumber(file):
                     break
             
             if not matches:
-                print('nothing found in fourth crop')
+                # print('nothing found in fourth crop')
                 swap = crop(image, (.04*width,.925*height,.95*width,.955*height))
             
                 #run tesseract on crop
@@ -238,7 +238,7 @@ def findPageNumber(file):
                     break
                     
             if not matches:
-                print('nothing found in fifth crop.')
+                # print('nothing found in fifth crop.')
                 swap = crop(image, (.04*width,.80*height,.95*width,.83*height))
             
                 #run tesseract on crop
@@ -253,7 +253,7 @@ def findPageNumber(file):
                     break
             
             if not matches: 
-                print('nothing found in sixth crop')
+                # print('nothing found in sixth crop')
                 swap = crop(image, (.04*width,.955*height,.95*width,.98*height))
             
                 #run tesseract on crop
@@ -268,11 +268,11 @@ def findPageNumber(file):
                     break
                     
             if not matches:
-                print('not found')
+                # print('not found')
                 break
         
         except IOError:
-            print("image file is truncated")
+            # print("image file is truncated")
             break
 
 def setImageCoords(file, formNumber, page_number):
@@ -779,8 +779,8 @@ def setImageCoords(file, formNumber, page_number):
                 #'ApartmentNo': (.566*width,.20*height,.676*width,.221*height)
                 }
     
-    else:
-        print("Dimensions not found for form number" + formNumber)
+    # else:
+        # print("Dimensions not found for form number" + formNumber)
         
 def switchCoords(form_number, page_number):
     if form_number == '03/08/13':
@@ -790,8 +790,8 @@ def switchCoords(form_number, page_number):
         elif page_number == 8:
             coords = image_coords_030813_pg8
             return(coords)
-        else:
-            print("This page does not contain data")
+        # else:
+            # print("This page does not contain data")
     elif form_number == '07/17/17':
         if page_number == 1:
             coords = image_coords_071717_pg1
@@ -799,8 +799,8 @@ def switchCoords(form_number, page_number):
         elif page_number == 2:
             coords = image_coords_071717_pg2
             return(coords)
-        else:
-            print("This page does not contain data")        
+        # else:
+            # print("This page does not contain data")        
     elif form_number == '11/14/2016':
         if page_number == 1:
             coords = image_coords_111416_pg1
@@ -808,8 +808,8 @@ def switchCoords(form_number, page_number):
         elif page_number == 2:
             coords = image_coords_111416_pg2
             return(coords)
-        else:
-            print("This page does not contain data")  
+        # else:
+            # print("This page does not contain data")  
     else:
         switcher = {
                 '02/02/09': image_coords_020209,
@@ -864,7 +864,7 @@ with Image(file=flowFile, resolution=200) as img:
 crops = {}
 
 for i in range(len(PNGs)):
-    print('Page ' + str(i))
+    # print('Page ' + str(i))
     page = PNGs[i]
     form_number = findFormNumber(page)
 
@@ -911,17 +911,17 @@ for i in range(len(PNGs)):
                     #only do the crop if there is the correct number of dimensions
                     if len(value) != 4:
                         if len(value) == 0:
-                            print(key, " has no coords yet.")
+                            # print(key, " has no coords yet.")
                             continue
                         else:
-                            print(key, "has an incorrect number of dimensions.")
+                            # print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        print(key + ' : ' + str(value))
+                        # print(key + ' : ' + str(value))
                         swap = crop(page, value)
                         crops[key] = swap
-            else:
-                    print("Not a data form")
+            # else:
+                    # print("Not a data form")
         else:
             if page_info[form_number] == page_number2:
                 #loop through the coordinates for each attribute and create a new image
@@ -929,17 +929,17 @@ for i in range(len(PNGs)):
                     #only do the crop if there is the correct number of dimensions
                     if len(value) != 4:
                         if len(value) == 0:
-                            print(key, " has no coords yet.")
+                            # print(key, " has no coords yet.")
                             continue
                         else:
-                            print(key, "has an incorrect number of dimensions.")
+                            # print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        print(key + ' : ' + str(value))
+                        # # print(key + ' : ' + str(value))
                         swap = crop(page, value)
                         crops[key] = swap
-            else:
-                    print("Not a data form")
+            # else:
+                    # print("Not a data form")
     else:
         if form_number in no_page_number:
             if (page_info[form_number][0] == page_number) or (page_info[form_number][1] == page_number):
@@ -948,17 +948,17 @@ for i in range(len(PNGs)):
                     #only do the crop if there is the correct number of dimensions
                     if len(value) != 4:
                         if len(value) == 0:
-                            print(key, " has no coords yet.")
+                            # print(key, " has no coords yet.")
                             continue
                         else:
-                            print(key, "has an incorrect number of dimensions.")
+                            # print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        print(key + ' : ' + str(value))
+                        # print(key + ' : ' + str(value))
                         swap = crop(page, value)
                         crops[key] = swap
-            else:
-                    print("Not a data form")
+            # else:
+                    # print("Not a data form")
         else:
             if (page_info[form_number][0] == page_number2) or (page_info[form_number][1] == page_number2):
                 #loop through the coordinates for each attribute and create a new image
@@ -966,17 +966,17 @@ for i in range(len(PNGs)):
                     #only do the crop if there is the correct number of dimensions
                     if len(value) != 4:
                         if len(value) == 0:
-                            print(key, " has no coords yet.")
+                            # print(key, " has no coords yet.")
                             continue
                         else:
-                            print(key, "has an incorrect number of dimensions.")
+                            # print(key, "has an incorrect number of dimensions.")
                             continue
                     else:
-                        print(key + ' : ' + str(value))
+                        # print(key + ' : ' + str(value))
                         swap = crop(page, value)
                         crops[key] = swap
-            else:
-                print("Not a data form")
+            # else:
+                # print("Not a data form")
 
     ocrs = {}
     for key, value in crops.items():

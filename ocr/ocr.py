@@ -788,3 +788,4 @@ for i in range(len(PNGs)):
 
 output = json.dumps(ocrs)
 sys.stdout.write(output)
+
