@@ -102,7 +102,7 @@ flowFile = session.write(flowFile, { inputStream, outputStream ->
         stripper.addRegion("List A - IssuingAuthority", boxAissuer)
         Rectangle boxAdocnumber1 = new Rectangle(widthByPercent(10.5), heightByPercent(60.5), widthByPercent(20), heightByPercent(1))
         stripper.addRegion("List A - DocumentNumber", boxAdocnumber1)
-        Rectangle boxAexpiration1 = new Rectangle(widthByPercent(20.5), heightByPercent(62), widthByPercent(20), heightByPercent(1))
+        Rectangle boxAexpiration1 = new Rectangle(widthByPercent(20.5), heightByPercent(62), widthByPercent(14), heightByPercent(1))
         stripper.addRegion("List A - DocumentExpirationDate", boxAexpiration1)
         Rectangle boxAdocnumber2 = new Rectangle(widthByPercent(10.5), heightByPercent(64), widthByPercent(20), heightByPercent(1))
         stripper.addRegion("List A - DocumentTitle - Second Section", boxAdocnumber2)
