@@ -1,5 +1,4 @@
-import java.nio.charset.StandardCharsets
-import org.apache.pdfbox.io.IOUtils
+import groovy.json.JsonSlurper
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.util.PDFTextStripperByArea
 import java.awt.Rectangle
@@ -20,6 +19,92 @@ def heightByPercent(double percent) {
     return (int)Math.round(percent * pheight)
 }
 
+def getFormVersion(PDPage page) {
+    //Find the form version and load the JSON containing the proper coords
+    Rectangle formvertop = new Rectangle(widthByPercent(0), heightByPercent(0), widthByPercent(100), heightByPercent(8))
+    stripper.addRegion("formvertop", formvertop)
+    Rectangle formverbottom = new Rectangle(widthByPercent(0), heightByPercent(92), widthByPercent(100), heightByPercent(8))
+    stripper.addRegion("formverbottom", formverbottom)
+    stripper.setSortByPosition(true)
+    stripper.extractRegions(page)
+    List<String> regions = stripper.getRegions()
+    String ver = ''
+    for (String region : regions) {
+        String swap = stripper.getTextForRegion(region)
+        ver = ver + swap
+    }
+    if(ver.contains('(Rev. 08/07/09)')){
+        return '08/07/09'
+    }
+}
+
+def setCoords(version) {
+    def jsonSlurper = new JsonSlurper()
+    if(version.contains("08/07/09")) {
+        coords = jsonSlurper.parseText '''
+            {"LastName": [0.055, 0.180, 0.37, 0.204],
+               "FirstName": [0.368, 0.180, 0.61, 0.205],
+               "MiddleInitial": [0.610, 0.180, 0.686, 0.205],
+               "MaidenName": [0.69, 0.18, 0.94, 0.205],
+               "StreetAddress": [0.055, 0.217, 0.58, 0.240],
+               "City": [0.055, 0.252, 0.35, 0.275],
+               "DateOfBirth": [0.688, 0.217, 0.95, 0.240],
+               "SocialSecurity": [0.688, 0.253, 0.95, 0.275],
+               "State": [0.345, 0.252, 0.58, 0.275],
+               "Zip": [0.58, 0.252, 0.688, 0.275],
+               "EmailAddress": [],
+               "Telephone": [],
+               "Attestation": [0.49, 0.292, 0.515, 0.365],
+               "Alien # for Permanent Residence": [
+               0.722, 0.325, 0.94, 0.345],
+               "Date Expiration of Work Authorization": [
+               0.805, 0.362, 0.955, 0.377],
+               "Alien # for Work Authorization": [
+               0.81, 0.346, 0.955, 0.365],
+               "I-94 Admission Number": [],
+               "Foreign Passport": [],
+               "Country of Issuance": [],
+               "TranslatorName": [0.513, 0.443, 0.94, 0.469],
+               "TranslatorAddress": [0.104, 0.482, 0.67, 0.505],
+               "TranslatorDateOfSignature": [0.68, 0.482, 0.94, 0.505],
+               "List A - DocumentTitle": [0.145, 0.564, 0.363, 0.586],
+               "List A - IssuingAuthority": [0.15, 0.586, 0.363, 0.605],
+               "List A - DocumentNumber": [0.126, 0.606, 0.363, 0.625],
+               "List A - DocumentExpirationDate": [
+               0.215, 0.625, 0.363, 0.644],
+               "List A - DocumentTitle - Second Section": [],
+               "List A - IssuingAuthority - Second Section": [],
+               "List A - DocumentNumber - Second Section": [
+               0.13, 0.644, 0.363, 0.662],
+               "List A - Document Expiration Date - Second Section": [
+               0.215, 0.662, 0.363, 0.682],
+               "List B - DocumentTitle": [0.38, 0.561, 0.64, 0.585],
+               "List B - IssuingAuthority": [0.38, 0.585, 0.64, 0.605],
+               "List B - DocumentNumber": [0.38, 0.6052, 0.64, 0.6245],
+               "List B - DocumentExpirationDate": [
+               0.38, 0.6245, 0.64, 0.6445],
+               "List C - DocumentTitle": [0.7, 0.561, 0.95, 0.585],
+               "List C - IssuingAuthority": [0.7, 0.585, 0.95, 0.605],
+               "List C - DocumentNumber": [0.7, 0.6052, 0.95, 0.6245],
+               "List C - DocumentExpirationDate": [
+               0.7, 0.6245, 0.95, 0.6445],
+               "DateOfHire": [0.16, 0.711, 0.278, 0.726],
+               "Name of Employee Representative": [
+               0.394, 0.752, 0.698, 0.777],
+               "Title": [0.698, 0.752, 0.95, 0.777],
+               "EmployerBusinessName": [0.05, 0.7875, 0.698, 0.808],
+               "EmployerStreetAddress": [],
+               "Date Signed by Employer": [0.698, 0.7875, 0.95, 0.808],
+               "List A - DocumentTitle - Third Section": [],
+               "List A - IssuingAuthority - Third Section": [],
+               "List A - DocumentNumber - Third Section": [],
+               "List A - Document Expiration Date - Third Section": [],
+               "Employee Info from Section 1": []}
+        '''
+        return coords
+    }
+}
+
 def flowFile = session.get()
 if(!flowFile) return
 
@@ -36,8 +121,8 @@ flowFile = session.write(flowFile, { inputStream, outputStream ->
 
         //Convert to percentages, safer to use on variable sized documents and easier to use
         //height = 841.8901 width = 595.28
-        pheight = page.getMediaBox().getHeight() / 100
-        pwidth = page.getMediaBox().getWidth() / 100
+        pheight = page.getMediaBox().getHeight()
+        pwidth = page.getMediaBox().getWidth()
 
         //Find the form version and load the JSON containing the proper coords
         Rectangle formvertop = new Rectangle(widthByPercent(0), heightByPercent(0), widthByPercent(100), heightByPercent(8))
