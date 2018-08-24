@@ -10,11 +10,11 @@ pheight = 0.00
 
 //Using percentages of page width and height is better at handling size variation than pixels
 //These functions handle the conversion
-def widthByPercent(BigDecimal percent) {
+def widthByPercent(percent) {
     return (int)Math.round(percent * pwidth)
 }
 
-def heightByPercent(BigDecimal percent) {
+def heightByPercent(percent) {
     return (int)Math.round(percent * pheight)
 }
 
@@ -40,9 +40,9 @@ def getFormVersion(PDPage page, PDFTextStripperByArea stripper) {
 }
 
 def getCoords(version) {
-    def swap = [:]
     if(version.contains("08/07/09")) {
         def coords = [
+            'pages': [0],
             'LastName': [0.02, 0.195, 0.27, 0.01],
             'FirstName': [0.29, 0.195, 0.23, 0.01],
             'MiddleInitial': [0.615, 0.195, 0.1, 0.01],
@@ -83,8 +83,17 @@ def getCoords(version) {
             'List A - Expiration Date -  Second Section': [0.205, 0.66, 0.2, 0.01],
             'DateOfHire': []
         ]
-        return coords
     }
+
+    // Broken need to fix last two coords in each key
+    if(version.contains('02/02/09')) {
+        def coords = [
+            'LastName': [],
+            'LastName': [],
+            'LastName': [],
+        ]
+    }
+    return coords
 }
 
 def flowFile = session.get()
