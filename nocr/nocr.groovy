@@ -100,18 +100,47 @@ flowFile = session.write(flowFile, { inputStream, outputStream ->
 
         //Get the first page
         List<PDPage> allPages = document.getDocumentCatalog().getAllPages()
-        PDPage page = allPages.get(0)
+//        PDPage page = allPages.get(0)
 
-        //Convert to percentages, safer to use on variable sized documents and easier to use
-        //height = 841.8901 width = 595.28
-        pheight = page.getMediaBox().getHeight()
-        pwidth = page.getMediaBox().getWidth()
-
+        def boxMap = [:]
         def version = getFormVersion(page, stripper)
         def coords = getCoords(version) //coords is a java.util.LinkedHashMap
 
-        // Reinitialize stripper to flush out the old coords for finding form version
-        stripper = new PDFTextStripperByArea()
+        for(int page_num : coords['pages']) {
+            // Get the page
+            PDPage page = allpages.get(page_num)
+
+            //Convert to percentages, safer to use on variable sized documents and easier to use
+            //height = 841.8901 width = 595.28
+            pheight = page.getMediaBox().getHeight()
+            pwidth = page.getMediaBox().getWidth()
+
+            // Reinitialize stripper to flush out the old coords for finding form version
+            stripper = new PDFTextStripperByArea()
+
+            // A better way to loop through the elements
+            def keys = coords.keySet()
+            for(String key : keys) {
+                if(key == 'pages' || coords[key] == null || coords[key].size() < 4)
+                    continue
+                def swapRectangle = new Rectangle(
+                        widthByPercent(coords[key][0]),
+                        heightByPercent(coords[key][1]),
+                        widthByPercent(coords[key][2]),
+                        heightByPercent(coords[key][3])
+                )
+                stripper.addRegion(key, swapRectangle)
+            }
+
+            //Load the results into a JSON
+            stripper.setSortByPosition(true)
+            stripper.extractRegions(page)
+            regions = stripper.getRegions()
+            for (String region : regions) {
+                String box = stripper.getTextForRegion(region)
+                boxMap.put(region, box)
+            }
+        }
 
         //Loop through all the elements of coords
 //        coords.each { element ->
@@ -126,30 +155,6 @@ flowFile = session.write(flowFile, { inputStream, outputStream ->
 //                stripper.addRegion(element.key, swap)
 //            }
 //        }
-
-        // A better way to loop through the elements
-        def keys = coords.keySet()
-        for(String key : keys) {
-            if(key == 'pages' || coords[key] == null || coords[key].size() < 4)
-                continue
-            def swapRectangle = new Rectangle(
-            widthByPercent(coords[key][0]),
-            heightByPercent(coords[key][1]),
-            widthByPercent(coords[key][2]),
-            heightByPercent(coords[key][3])
-            )
-            stripper.addRegion(key, swapRectangle)
-        }
-
-        //Load the results into a JSON
-        def boxMap = [:]
-        stripper.setSortByPosition(true)
-        stripper.extractRegions(page)
-        regions = stripper.getRegions()
-        for (String region : regions) {
-            String box = stripper.getTextForRegion(region)
-            boxMap.put(region, box)
-        }
 
         // Add the filename as an attribute
         boxMap.put('File', flowFile.getAttribute('filename'))
